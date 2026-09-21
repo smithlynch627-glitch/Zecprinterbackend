@@ -5,11 +5,13 @@ You have four pieces:
 | File | What it is | Where it goes |
 |---|---|---|
 | `zec-printer-supabase.sql` | The whole database: tables, security, all functions | Supabase SQL Editor (run once) |
-| `zec-printer-backend.zip` | API server: X login, tasks, points, referrals | Railway |
-| `zec-printer-frontend.zip` | The website: Home + OnBoard (WL) | Netlify |
-| `zec-printer-admin-panel.html` | Admin panel. Talks directly to Supabase. | Stays on your computer. Double-click to open. |
+| `zec-printer-backend.zip` | API server: X login, tasks, points, referrals, wallets, WL ticket images | Railway |
+| `zec-printer-frontend.zip` | The website: Home (with art gallery and FAQ) + OnBoard (WL) | Netlify |
+| `zec-printer-admin-panel.html` | Admin panel, including Arts and mint wallets. Talks directly to Supabase. | Stays on your computer. Double-click to open. |
 
 Everything is built and tested. What's left is creating the accounts and pasting your keys, which only you can do. Follow the steps in this order; it takes about 30 minutes.
+
+**Already live?** Skip to [Updating your live setup](#updating-your-live-setup) at the end.
 
 ---
 
@@ -106,8 +108,9 @@ Where each value comes from:
 | `X_CONSUMER_KEY`, `X_CONSUMER_SECRET` | X → Keys & Tokens → OAuth 1.0 Keys → Consumer Key → Regenerate (step 3B) |
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | Shown when you saved User authentication settings (step 3A). Only used by `oauth2`, but keeping them here makes switching instant. |
 | `X_REDIRECT_URI` | Your backend URL + `/auth/x/callback`. Must match the Callback URI in X exactly. |
-| `FRONTEND_URL` | Your Netlify URL. Use the placeholder until step 5, then replace it in step 6. |
+| `FRONTEND_URL` | Your Netlify URL. Use the placeholder until step 5, then replace it in step 6. Shared WL tickets send people here, so it must be your live site. |
 | `SESSION_SECRET` | The PowerShell line above. |
+| `PUBLIC_URL` (optional) | Leave it out. WL share links use the host of `X_REDIRECT_URI`, which is your backend. Only set it if you put the backend on a custom domain. |
 
 Railway redeploys by itself. Check it:
 
@@ -160,21 +163,23 @@ The panel talks straight to Supabase. It doesn't need the backend, so it works e
 |---|---|
 | Reviews | Approve or reject posts from tasks checked by the team. Approving adds the points instantly. |
 | Tasks | Create any task (follow, like/repost/reply, quote, daily, art, post about us, or custom with any link). Edit title, text, points, link, order, and how it's checked. Schedule a start time, set a timer (12/24/48/72 h or an exact end time), end it now, turn it off, or delete it. "Who did it" lists every user and their status. |
-| Users | Search and filter (all, whitelisted, not whitelisted, banned). Open any user to see everything: balance, rank, refer code, who referred them, who they invited, every task they did, and where every point came from, with a check that the history adds up to the balance. Set their WL status, adjust points, ban or unban. |
-| Whitelist | Open or close WL registration. Whitelist the top N as GTD or FCFS in one click. Download the whitelist or the top 1,000 as CSV. Remove WL from one user or everyone. |
+| Users | Search and filter (all, whitelisted, whitelisted without a wallet, not whitelisted, banned). Each row shows the user's mint wallet. Open any user to see everything: balance, rank, refer code, who referred them, who they invited, every task they did, where every point came from (with a check that the history adds up to the balance), and their wallet with its full change history. Set their WL status, adjust points, remove their wallet, ban or unban. |
+| Whitelist | Open or close WL registration. Whitelist the top N as GTD or FCFS in one click. See how many users saved a wallet and how many whitelisted users still have none. Lock or open wallet changes. Download the whitelist or the top 1,000 as CSV (with wallet type and address). Remove WL from one user or everyone. |
+| Arts | The NFT images in the home gallery and on WL tickets. Paste Cloudinary links (up to 200 at once), hide or show a piece, change the order, or remove it. Only `https://res.cloudinary.com/...` image links are accepted. Your 30 arts are already added. |
 | Referrals | Top referrers and the latest refer code uses. |
 | Points log | Every $PRINT ever added or removed, with the reason. Filter by user. |
 
 The panel remembers the Supabase URL and key on your computer. It forgets the password when you close the tab.
 
-### How the WL status works for users
+### What users see on OnBoard (WL)
 
-- Under the refer code section, every user sees **Your WL status**.
-- **Not whitelisted yet**: shows their rank and tells them to keep climbing.
-- **Whitelisted** (with GTD or FCFS if you set a tier): a stamp, plus a **Post on X** box with a ready "I'm officially whitelisted" post they can edit and send.
-- When you **close WL registration**, tasks and refer codes pause, the site shows "WL registration closed", and users can still log in to see their status.
+- **WL status check**, right under their $PRINT balance. Their X account is filled in and locked. Pressing **Check WL status** plays a short printing animation, then prints a ticket with a random ZEC PRINTER art piece, their @username, status and tier, stamped **Approved** or **Not approved**. The status is always read fresh from the database.
+- **Approved** tickets get **Share on X** and **Save image**. The post links to a share page, and X shows the ticket as the post's large image. X doesn't let websites attach images to a post directly, so this link preview is how the ticket appears. On phones, Share on X can attach the image file itself through the phone's share menu.
+- **Mint wallet**, below that: the user pastes their Noir **shielded** address (starts with u1) and saves. Transparent (t1) addresses are refused for now. They can edit it later. The address is checked, including its checksum, so a typo is caught. Each address can belong to one account only, each user can change it up to 5 times a day, and every change is recorded.
+- **Task FAQ and task rules** at the bottom of the right column.
+- When you **close WL registration**, tasks and refer codes pause, the site shows "WL registration closed", and users can still log in to check their status.
 
-A typical finish: close registration → Whitelist tab → whitelist the top N → download the whitelist CSV.
+A typical finish: close registration → Whitelist tab → whitelist the top N → check "whitelisted users without a wallet" → lock wallet changes → download the whitelist CSV.
 
 ---
 
@@ -185,6 +190,8 @@ A typical finish: close registration → Whitelist tab → whitelist the top N �
 3. Do the Follow task → it shows a 24h countdown.
 4. Submit an art link → it appears in the admin panel under Reviews → Approve → refresh the site, +100.
 5. With a second X account, apply the first account's refer code → both get +30.
+6. Save a wallet in **Mint wallet** → it appears in the admin panel next to your user.
+7. Admin panel → whitelist yourself → site → **Check WL status** → Approved → **Share on X**. The post shows your ticket as its image. The first preview can take a few seconds while X fetches it.
 
 ---
 
@@ -195,6 +202,8 @@ A typical finish: close registration → Whitelist tab → whitelist the top N �
 - The admin panel uses the anon public key. That key can call exactly one database function, and that function refuses everything without the admin password. The password is checked inside the database (bcrypt), and 10 wrong tries lock the panel for 15 minutes.
 - The website never uses the anon key, so it isn't published anywhere. Still, keep it and your admin password to yourself.
 - Never put the service_role key in the admin panel. The panel refuses it if you try.
+- Wallets: the backend verifies every address's checksum, the database checks the format again, an address can belong to one account only, users get 5 changes a day, every change is logged, and you can lock changes.
+- WL share links use a random 12-character code per user and only work while that user is whitelisted and not banned, so nobody can make an "Approved" ticket for someone else. The backend only ever downloads art from Cloudinary, and ticket images are size-limited and cached.
 
 Already ran an older version of the SQL? Just run the new `zec-printer-supabase.sql` again. It upgrades everything and keeps all users, points and your admin password.
 
@@ -213,6 +222,39 @@ update app.tasks set review_mode = 'manual' where slug = 'quote-pinned';
 | Site says "X login is unavailable right now" | Only in `oauth2` mode: it needs X API credits. Add a few dollars, or switch back to `oauth1`. |
 | Site says "X did not accept the connection" | The login took too long or was already used: press Connect X again. If it keeps happening, check the key pair for your mode (Consumer Key/Secret for `oauth1`, Client ID/Secret for `oauth2`). |
 | Browser console shows a CORS error on the site | `FRONTEND_URL` on Railway must exactly match your Netlify URL (https, no slash at the end). |
+| A shared WL post shows no ticket image | Open the share link from the post in a browser: it should jump to your site. Check that `X_REDIRECT_URI` uses your https Railway address (share links are built from it). X also caches previews, so a link shared before a fix can keep the old preview. Share again from the site to get a fresh link. |
+| Shared link opens localhost | `FRONTEND_URL` on Railway still points to your computer. Set it to your Netlify URL. |
+| Art doesn't load in the gallery | The link must be a public Cloudinary image link. The site asks Cloudinary for small versions first and falls back to the original file automatically. |
+| Users see "Wallet changes are closed right now" | You locked them in Whitelist → Mint wallets. Press **Open wallet changes**. |
+
+---
+
+## Updating your live setup
+
+Your users, points, WL statuses and admin password are all kept. Do these in order.
+
+**1. Database.** Supabase → SQL Editor → paste all of the new `zec-printer-supabase.sql` → **Run**. It adds wallets, arts (with your 30 images), share codes and the new admin actions. Running it again later is safe.
+
+**2. Backend.** Download the new `zec-printer-backend.zip`, then in PowerShell:
+
+```powershell
+Expand-Archive -Path "$HOME\Downloads\zec-printer-backend.zip" -DestinationPath "$HOME\Downloads\zp-new" -Force
+Copy-Item "$HOME\Downloads\zp-new\zec-printer-backend\*" -Destination "D:\Project NFTs 2026\ZEC PRINTER\zec-printer-backend" -Recurse -Force
+cd "D:\Project NFTs 2026\ZEC PRINTER\zec-printer-backend"
+npm install
+git add .
+git status
+git commit -m "WL ticket check, mint wallets, arts, share images"
+git push
+```
+
+`git status` must not list `.env`. If Railway doesn't start a new deploy by itself, open the service and press Ctrl + K → **Deploy latest commit**. Check that `https://YOUR-BACKEND-URL/api/arts` shows your art links.
+
+**3. Railway variables.** Make sure `FRONTEND_URL` is your Netlify URL, not localhost. Shared WL tickets send people there.
+
+**4. Website.** Build the new `zec-printer-frontend.zip` with `VITE_API_URL=https://YOUR-BACKEND-URL` and deploy it to Netlify the same way as before.
+
+**5. Admin panel.** Replace your old `zec-printer-admin-panel.html` with the new one. The new **Arts** tab and the wallet tools need the new SQL from step 1.
 | Admin panel: "Could not reach Supabase" | Check the Project URL, like `https://abcdefgh.supabase.co`. |
 | Admin panel: "Supabase rejected the key" | Use the **anon public** (or publishable) key from Project Settings → API. |
 | Admin panel: "Admin function not found" | Run the latest `zec-printer-supabase.sql` again. It keeps all users and points. |

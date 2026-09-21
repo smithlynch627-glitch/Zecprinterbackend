@@ -3,6 +3,9 @@ import rateLimit from 'express-rate-limit';
 import { requireAuth } from './auth.js';
 import { errorFor, rpc, sendError } from './supabase.js';
 import { parseTweetUrl } from './tweet.js';
+import { validateZcashAddress } from './wallet.js';
+import { getArts } from './arts.js';
+import { config } from './config.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,6 +61,17 @@ apiRouter.get('/status', async (req, res) => {
     }
     res.set('Cache-Control', 'public, max-age=15');
     res.json(status.data);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// ---------- Public NFT art list (gallery + WL tickets), cached 5 minutes ----------
+apiRouter.get('/arts', async (req, res) => {
+  try {
+    const arts = await getArts();
+    res.set('Cache-Control', 'public, max-age=120');
+    res.json(arts);
   } catch (err) {
     sendError(res, err);
   }
@@ -120,6 +134,48 @@ apiRouter.post('/referral/apply', requireAuth, actionLimiter, async (req, res) =
     const data = await rpc('api_apply_referral', { p_user_id: req.userId, p_code: code });
     board.at = 0; // points changed instantly, refresh the leaderboard on next request
     res.json(data);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// ---------- Mint wallet (Noir) ----------
+const WALLET_MESSAGES = {
+  EMPTY: 'Paste your wallet address.',
+  UNSUPPORTED: 'Paste your Noir shielded address. It starts with u1.',
+  INVALID: "That address isn't valid. Copy it again from Noir; a character is probably missing or changed.",
+};
+
+apiRouter.post('/wallet', requireAuth, actionLimiter, async (req, res) => {
+  const { address } = req.body ?? {};
+  if (typeof address !== 'string' || address.length > 600) {
+    return res.status(400).json({ error: WALLET_MESSAGES.EMPTY, code: 'INVALID_WALLET' });
+  }
+  const check = validateZcashAddress(address);
+  if (!check.ok) return res.status(400).json({ error: WALLET_MESSAGES[check.reason], code: 'INVALID_WALLET' });
+  // For now only shielded (u1) addresses are collected.
+  if (check.type !== 'shielded') {
+    return res.status(400).json({
+      error: 'That is a transparent (t1) address. Paste your Noir shielded address instead. It starts with u1.',
+      code: 'SHIELDED_ONLY',
+    });
+  }
+  try {
+    res.json(await rpc('api_set_wallet', { p_user_id: req.userId, p_address: check.address }));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// ---------- WL ticket share link (whitelisted users only) ----------
+apiRouter.post('/wl/share', requireAuth, actionLimiter, async (req, res) => {
+  const artId = Number(req.body?.art_id);
+  if (!Number.isInteger(artId) || artId < 1 || artId > 999_999_999) {
+    return res.status(400).json({ error: 'Unknown art.' });
+  }
+  try {
+    const { code } = await rpc('api_wl_share', { p_user_id: req.userId });
+    res.json({ url: `${config.publicUrl}/s/${code}/${artId}`, image: `${config.publicUrl}/s/${code}/${artId}.png` });
   } catch (err) {
     sendError(res, err);
   }

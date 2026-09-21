@@ -53,4 +53,6 @@ export const config = {
   sessionDays: num(process.env.SESSION_DAYS, 7),
   verifyJobMinutes: Math.max(1, num(process.env.VERIFY_JOB_MINUTES, 5)),
   secureCookies: process.env.X_REDIRECT_URI.startsWith('https://'),
+  // This backend's own public address (used in WL share links). Defaults to the X_REDIRECT_URI host.
+  publicUrl: (process.env.PUBLIC_URL || new URL(process.env.X_REDIRECT_URI).origin).replace(/\/+$/, ''),
 };

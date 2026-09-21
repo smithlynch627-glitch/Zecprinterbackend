@@ -40,6 +40,11 @@ const ERRORS = {
   CANNOT_USE_OWN_CODE: [400, 'You cannot use your own refer code.'],
   REFERRAL_ALREADY_APPLIED: [409, 'You already applied a refer code.'],
   MUTUAL_REFERRAL_NOT_ALLOWED: [400, 'You referred this person, so you cannot use their code.'],
+  INVALID_WALLET: [400, "That address isn't valid. Copy it again from Noir."],
+  WALLET_TAKEN: [409, 'This address is already saved on another X account. Each wallet can only be used once.'],
+  WALLET_LOCKED: [403, 'Wallet changes are closed right now.'],
+  WALLET_CHANGE_LIMIT: [429, 'You changed your wallet 5 times today. Try again tomorrow.'],
+  NOT_WHITELISTED: [403, 'Only whitelisted accounts can share a WL ticket.'],
 };
 
 export function sendError(res, err) {

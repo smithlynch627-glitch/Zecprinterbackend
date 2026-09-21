@@ -37,7 +37,7 @@ Make SESSION_SECRET in PowerShell:
 $b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
 ```
 
-Optional: `SESSION_DAYS` (default 7), `VERIFY_JOB_MINUTES` (default 5).
+Optional: `SESSION_DAYS` (default 7), `VERIFY_JOB_MINUTES` (default 5), `PUBLIC_URL` (this backend's own https address, used in WL share links; defaults to the host of `X_REDIRECT_URI`, so you normally leave it out).
 
 ## Local testing without X
 
@@ -63,6 +63,10 @@ Invoke-RestMethod https://YOUR-BACKEND.up.railway.app/health
 | `GET /api/me`, `GET /api/tasks`, `POST /api/tasks/:id/submit`, `POST /api/referral/apply` | Website (logged in) |
 | `GET /api/leaderboard` | Website (public, cached 30s) |
 | `GET /api/status` | Website: WL registration open or closed (public, cached 30s) |
+| `GET /api/arts` | Website: art list for the gallery and WL tickets (public, cached) |
+| `POST /api/wallet` | Website: save or change the mint wallet (logged in; address checksum is verified) |
+| `POST /api/wl/share` | Website: share link for a whitelisted user's WL ticket (logged in) |
+| `GET /s/<code>/<art>` and `GET /s/<code>/<art>.png` | Public share page read by X (link preview tags) and the ticket image. Works only while the owner is whitelisted and not banned. |
 
 The admin panel does not use the backend. It talks to Supabase directly.
 
