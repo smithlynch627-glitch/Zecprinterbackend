@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { config } from './config.js';
 
 // Service-role client. It can ONLY call the public api_* functions:
 // the tables themselves are locked away in the private "app" schema.
+// `ws` is passed so the client also starts on Node versions without a built-in WebSocket.
 const supabase = createClient(config.supabaseUrl, config.supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
+  realtime: { transport: WebSocket },
 });
 
 export class RpcError extends Error {

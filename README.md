@@ -39,6 +39,16 @@ $b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create
 
 Optional: `SESSION_DAYS` (default 7), `VERIFY_JOB_MINUTES` (default 5).
 
+## Local testing without X
+
+`scripts/dev-login.js` creates a test user and prints a one-time login link for your local website (valid 2 minutes). It reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from your local `.env` and is never part of the running server.
+
+```powershell
+node scripts/dev-login.js test_alice
+```
+
+Test users get X ids starting with `0`. Remove them all with `delete from app.users where x_user_id like '0%';`
+
 ## Check it
 
 ```powershell
